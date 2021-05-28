@@ -1,0 +1,17 @@
+[
+{
+  "directory": "/home/hems/how/twoLoadVsGrid/build",
+  "command": "/usr/bin/g++-8   -I/home/hems/how/twoLoadVsGrid/include -I/usr/include/mysql -I/home/hems/glpk-4.65-built/src  -g   -o CMakeFiles/two_load_vs_grid.dir/src/two_load_vs_grid.cpp.o -c /home/hems/how/twoLoadVsGrid/src/two_load_vs_grid.cpp",
+  "file": "/home/hems/how/twoLoadVsGrid/src/two_load_vs_grid.cpp"
+},
+{
+  "directory": "/home/hems/how/twoLoadVsGrid/build",
+  "command": "/usr/bin/g++-8   -I/home/hems/how/twoLoadVsGrid/include -I/usr/include/mysql -I/home/hems/glpk-4.65-built/src  -g   -o CMakeFiles/two_load_vs_grid.dir/src/SQLFunction.cpp.o -c /home/hems/how/twoLoadVsGrid/src/SQLFunction.cpp",
+  "file": "/home/hems/how/twoLoadVsGrid/src/SQLFunction.cpp"
+},
+{
+  "directory": "/home/hems/how/twoLoadVsGrid/build",
+  "command": "/usr/bin/g++-8   -I/home/hems/how/twoLoadVsGrid/include -I/usr/include/mysql -I/home/hems/glpk-4.65-built/src  -g   -o CMakeFiles/two_load_vs_grid.dir/src/new2D.cpp.o -c /home/hems/how/twoLoadVsGrid/src/new2D.cpp",
+  "file": "/home/hems/how/twoLoadVsGrid/src/new2D.cpp"
+}
+]

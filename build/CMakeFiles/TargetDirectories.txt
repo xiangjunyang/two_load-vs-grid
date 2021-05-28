@@ -1,0 +1,3 @@
+/home/hems/how/twoLoadVsGrid/build/CMakeFiles/rebuild_cache.dir
+/home/hems/how/twoLoadVsGrid/build/CMakeFiles/two_load_vs_grid.dir
+/home/hems/how/twoLoadVsGrid/build/CMakeFiles/edit_cache.dir
