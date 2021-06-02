@@ -1,1 +1,0 @@
-/usr/bin/g++-8  -g   CMakeFiles/two_load_vs_grid.dir/src/two_load_vs_grid.cpp.o CMakeFiles/two_load_vs_grid.dir/src/SQLFunction.cpp.o CMakeFiles/two_load_vs_grid.dir/src/new2D.cpp.o  -o two_load_vs_grid -lmysqlclient /home/hems/glpk-4.65-built/src/.libs/libglpk.a 
