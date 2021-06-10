@@ -9,9 +9,6 @@
 
 #include "SQLFunction.h"
 
-MYSQL *mysql_con = mysql_init(NULL);
-MYSQL_RES *mysql_result;
-MYSQL_ROW mysql_row;
 
 
 MYSQL_ROW fetch_row_value() {

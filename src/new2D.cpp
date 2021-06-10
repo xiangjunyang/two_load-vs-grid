@@ -1,3 +1,5 @@
+#include "SQLFunction.h"
+
 void *new2d(int h, int w, int size)
 {
 	register int i;

@@ -10,7 +10,10 @@
 #include <mysql/mysql.h>
 #include "SQLFunction.h"
 
-int interrupt_num = 0, uninterrupt_num = 0, app_count = 0, sample_time = 0, variable = 0, divide = 4, time_block = 96, point_num = 6, real_time;
+#define NEW2D(H, W, TYPE) (TYPE **)new2d(H, W, sizeof(TYPE))
+using namespace std;
+
+int interrupt_num = 0, uninterrupt_num = 0, app_count = 0, sample_time = 0, real_time = 0, variable = 0, divide = 4, time_block = 96, point_num = 6;
 int h, i, j, k, m, n = 0;
 double z = 0;
 float Pgrid_max = 0.0, delta_T = 0.25;
@@ -18,8 +21,13 @@ char sql_buffer[2000] = {'\0'};
 
 time_t t = time(NULL);
 struct tm now_time = *localtime(&t);
+void dataout(float **power1);
 
 char column[400] = "A0,A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,A16,A17,A18,A19,A20,A21,A22,A23,A24,A25,A26,A27,A28,A29,A30,A31,A32,A33,A34,A35,A36,A37,A38,A39,A40,A41,A42,A43,A44,A45,A46,A47,A48,A49,A50,A51,A52,A53,A54,A55,A56,A57,A58,A59,A60,A61,A62,A63,A64,A65,A66,A67,A68,A69,A70,A71,A72,A73,A74,A75,A76,A77,A78,A79,A80,A81,A82,A83,A84,A85,A86,A87,A88,A89,A90,A91,A92,A93,A94,A95";
+
+MYSQL *mysql_con = mysql_init(NULL);
+MYSQL_RES *mysql_result;
+MYSQL_ROW mysql_row;
 
 int main(void)
 {
@@ -33,9 +41,6 @@ int main(void)
 	}
 	printf("Connect to Mysql sucess!!\n");
 	mysql_set_character_set(mysql_con, "utf8");
-
-	snprintf(sql_buffer, sizeof(sql_buffer), "TRUNCATE TABLE xiang_control_status"); //clean control_status;
-	mysql_query(mysql_con, sql_buffer);
 
 	// get num of interrupt group
 	snprintf(sql_buffer, sizeof(sql_buffer), "SELECT count(*) AS numcols FROM load_list WHERE group_id=1 ");
@@ -52,7 +57,7 @@ int main(void)
 	printf("Pgrid_max:%.2f\n", Pgrid_max);
 
 	app_count = interrupt_num + uninterrupt_num; // 14
-	variable = app_count + 1 + 2;				 // 變數:買電狀態 + 不可變動二元輔助變數 17
+	variable = app_count + 1 + 2;				 // 買電狀態 + 不可變動二元輔助變數 17
 	int *position = new int[app_count];
 	float **INT_power = NEW2D(interrupt_num, 4, float);
 	float **UNINT_power = NEW2D(uninterrupt_num, 4, float);
@@ -104,7 +109,7 @@ int main(void)
 		interrupt_p[i] = 0.0;
 	}
 	// interrupt load array: INT_power[interrupt num][4]
-	printf("\ninterrupt multi array: \n");
+	printf("\n interrupt multi array: \n");
 	printf("St  End  Ot  ReOt\n");
 	for (i = 0; i < interrupt_num; i++)
 	{
@@ -169,7 +174,7 @@ int main(void)
 
 	if (real_time == 0)
 	{
-		snprintf(sql_buffer, sizeof(sql_buffer), "TRUNCATE TABLE xiang_control_status"); //clean control_status;
+		snprintf(sql_buffer, sizeof(sql_buffer), "TRUNCATE TABLE xiang_control_status"); //clean xiang_control_status;
 		sent_query();
 		snprintf(sql_buffer, sizeof(sql_buffer), "TRUNCATE TABLE real_status"); //clean control_status;
 		sent_query();
@@ -192,7 +197,7 @@ int main(void)
 	GLPK(interrupt_start, interrupt_end, interrupt_ot, interrupt_reot, interrupt_p, uninterrupt_start, uninterrupt_end, uninterrupt_ot, uninterrupt_reot, uninterrupt_p, uninterrupt_flag, app_count, price, position);
 
 	sample_time++;
-	std::cout << "update time block to " << sample_time << std::endl;
+	std::cout << "\n update time block to " << sample_time << std::endl;
 	snprintf(sql_buffer, sizeof(sql_buffer), "UPDATE LP_BASE_PARM set value = %d where parameter_id= 28", sample_time);
 	sent_query();
 }
@@ -358,7 +363,7 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 	{
 		if (uninterrupt_flag[h] == 0)
 		{
-			if (((uninterrupt_end[h] - sample_time) >= 0) && (uninterrupt_reot[h] > 0)) //未執行時間 & 次數>0
+			if (((uninterrupt_end[h] - sample_time) >= 0) && (uninterrupt_reot[h] > 0))
 			{
 				if ((uninterrupt_start[h] - sample_time) >= 0)
 				{
@@ -385,6 +390,7 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 	}
 
 	// ========================== 平衡式(Balanced function) ==========================
+
 	for (h = 0; h < interrupt_num; h++) // 可中斷負載(Interrupt load)
 	{
 		if ((interrupt_end[h] - sample_time) >= 0)
@@ -406,6 +412,7 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 			}
 		}
 	}
+
 	for (h = 0; h < uninterrupt_num; h++) //不可中斷負載(Interrupt load)
 	{
 		if ((uninterrupt_end[h] - sample_time) >= 0)
@@ -506,11 +513,13 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 	/*============================== 宣告限制式條件範圍(row) ===============================*/
 	// GLPK讀列從1開始
 	// 限制式-家庭負載最低耗能
+
 	for (i = 1; i <= interrupt_num; i++) // 可中斷負載(Interrupt load)
 	{
 		glp_set_row_name(mip, i, "");
 		glp_set_row_bnds(mip, i, GLP_LO, ((float)interrupt_reot[i - 1]), 0.0); // ok
 	}
+
 	for (i = 1; i <= uninterrupt_num; i++) //不可中斷負載
 	{
 		if (uninterrupt_flag[i] == 0)
@@ -519,8 +528,8 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 			glp_set_row_bnds(mip, i + interrupt_num, GLP_LO, ((float)uninterrupt_reot[i - 1]), ((float)uninterrupt_reot[i - 1])); //ok
 		}
 	}
-	// 決定是否輸出市電
-	for (i = 1; i <= (time_block - sample_time); i++)
+
+	for (i = 1; i <= (time_block - sample_time); i++) // 決定是否輸出市電
 	{
 		glp_set_row_name(mip, (app_count + i), "");
 		glp_set_row_bnds(mip, (app_count + i), GLP_UP, 0.0, 0.0);
@@ -621,24 +630,21 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 
 	parm.presolve = GLP_ON;
 	parm.gmi_cuts = GLP_ON;
-	parm.fp_heur = GLP_ON;
+	// parm.fp_heur = GLP_ON;
 	parm.bt_tech = GLP_BT_BFS;
 	parm.br_tech = GLP_BR_PCH;
 
 	int err = glp_intopt(mip, &parm);
 	z = glp_mip_obj_val(mip);
-	// for(i=0; i<app_count; i++)
-	// { printf("%.2f\n", glp_mip_col_val(mip,i)); }
 
 	printf("\n");
 	printf("sol = %f; \n", z);
 
-	// if (z == 0.0 && glp_mip_col_val(mip, (app_count + 7)) == 0.0)
-	// {
-	// 	printf("No Solotion,give up the solution\n");
-	// 	system("pause");
-	// 	exit(1);
-	// }
+	if (z == 0.0)
+	{
+		printf("glpk no solution");
+		return;
+	}
 
 	/*============================== 將決策變數結果輸出 ==================================*/
 	for (i = 1; i <= variable; i++)
@@ -679,7 +685,7 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 				}
 			}
 			memset(sql_buffer, 0, sizeof(sql_buffer));
-			printf("\n");
+			// printf("\n");
 			for (j = 0; j < (time_block - sample_time); j++)
 			{
 				s[j + sample_time] = glp_mip_col_val(mip, h);
@@ -728,4 +734,34 @@ void GLPK(int *interrupt_start, int *interrupt_end, int *interrupt_ot, int *inte
 
 	return;
 	//end
+}
+
+void *new2d(int h, int w, int size)
+{
+	int i;
+	void **p;
+
+	p = (void **)new char[h * sizeof(void *) + h * w * size];
+
+	for (i = 0; i < h; i++)
+	{
+		p[i] = ((char *)(p + h)) + i * w * size;
+	}
+	return p;
+}
+
+void dataout(float **power1)
+{
+	ofstream outFile;
+	outFile.open("../data/data.csv", ios::out); // 打开模式可省略
+	for (m = 0; m < ((time_block - sample_time) * 20) + app_count; m++)
+	{
+		outFile << "m=" << m << endl;
+		for (n = 0; n < (variable * (time_block - sample_time)); n++)
+		{
+			outFile << power1[m][n] << ' ';
+		}
+		outFile << ' ' << endl;
+	}
+	outFile.close();
 }
